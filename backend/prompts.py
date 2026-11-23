@@ -21,10 +21,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # The values use paths relative to PROJECT_ROOT, so the app can be launched
 # from the repository root or another working directory.
 PROMPT_FILES: dict[WritingMode, Path] = {
-    WritingMode.BLOG_POST: PROJECT_ROOT / "blog_post" / "Blog_Post_Writing_Coach_Prompt.txt",
-    WritingMode.FACEBOOK: PROJECT_ROOT / "facebook" / "Facebook_Writing_Coach_Prompt.txt",
-    WritingMode.INSTAGRAM: PROJECT_ROOT / "instagram" / "Instagram_Writing_Coach_Prompt.txt",
-    WritingMode.LINKEDIN: PROJECT_ROOT / "linkedin" / "LinkedIn_Event_Reflection_Coach_Prompt.txt",
+    WritingMode.BLOG_POST: PROJECT_ROOT / "writing_prompts" / "blog_post" / "Blog_Post_Writing_Coach_Prompt.txt",
+    WritingMode.FACEBOOK: PROJECT_ROOT / "writing_prompts" / "facebook" / "Facebook_Writing_Coach_Prompt.txt",
+    WritingMode.INSTAGRAM: PROJECT_ROOT / "writing_prompts" / "instagram" / "Instagram_Writing_Coach_Prompt.txt",
+    WritingMode.LINKEDIN: PROJECT_ROOT / "writing_prompts" / "linkedin" / "LinkedIn_Event_Reflection_Coach_Prompt.txt",
 }
 
 
