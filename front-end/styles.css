@@ -1,3 +1,4 @@
+/* Shared visual tokens make it easier to tune the palette and surfaces in one place. */
 :root {
   color-scheme: light;
   --paper: #fbfaf8;
@@ -16,6 +17,7 @@
   text-rendering: optimizeLegibility;
 }
 
+/* Predictable sizing and base controls used across the interface. */
 * { box-sizing: border-box; }
 
 body {
@@ -31,6 +33,7 @@ button { color: inherit; }
 button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px solid #8cae9e; outline-offset: 3px; }
 [hidden] { display: none !important; }
 
+/* Desktop frame: fixed-width history sidebar beside a flexible chat pane. */
 .app-shell { display: flex; min-height: 100vh; }
 .sidebar {
   width: 264px;
@@ -72,6 +75,7 @@ button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 3px sol
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #91a78c; box-shadow: 0 0 0 3px #dce5d8; }
 .sidebar-footer p { margin: 8px 0 0; color: #969791; font-size: 10px; line-height: 1.5; }
 
+/* Main chat layout: header at top, conversation in the middle, composer at bottom. */
 .main-panel { position: relative; display: flex; flex: 1; min-width: 0; min-height: 100vh; flex-direction: column; }
 .topbar { display: flex; height: 61px; flex: 0 0 61px; align-items: center; justify-content: space-between; padding: 0 28px; }
 .topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; }
@@ -93,6 +97,7 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
 .privacy-note { margin: 23px 0 0; color: #a1a29c; font-size: 10px; }
 .tiny-lock { display: inline-block; margin-right: 4px; transform: rotate(180deg); }
 
+/* Message transcript and input styling. */
 .messages { display: flex; width: min(100%, 760px); flex: 1; flex-direction: column; gap: 21px; margin: 0 auto; padding: 20px 0 30px; }
 .message-row { display: flex; align-items: flex-start; gap: 12px; animation: rise-in .2s ease both; }
 .message-row.user { justify-content: flex-end; }
@@ -121,6 +126,7 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
 .send-button svg { width: 16px; height: 16px; stroke-width: 2; }
 .composer-disclaimer { margin: 9px 0 0; color: #a1a29c; text-align: center; font-size: 9px; }
 
+/* New-chat mode picker overlay and its four selectable writing-mode cards. */
 .modal-backdrop { position: fixed; z-index: 10; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(29 32 29 / 34%); backdrop-filter: blur(5px); animation: fade-in .16s ease both; }
 .mode-dialog { position: relative; width: min(100%, 470px); padding: 32px 32px 24px; border: 1px solid rgb(255 255 255 / 70%); border-radius: 23px; background: var(--paper); box-shadow: var(--shadow); animation: modal-in .22s cubic-bezier(.2,.8,.2,1) both; }
 .modal-close { position: absolute; top: 17px; right: 17px; }
@@ -147,10 +153,12 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
 .mobile-scrim { display: none; }
 .temporary-notice { position: fixed; z-index: 20; right: 18px; bottom: 18px; max-width: min(360px, calc(100vw - 36px)); padding: 12px 15px; border: 1px solid #e3d9c8; border-radius: 12px; background: #fffaf0; box-shadow: 0 8px 28px rgb(42 43 39 / 12%); color: #625b4d; font-size: 12px; line-height: 1.5; }
 
+/* Small transitions add feedback while respecting the reduced-motion setting below. */
 @keyframes rise-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modal-in { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
+/* Mobile: move the sidebar off-canvas and expose a menu button in the header. */
 @media (max-width: 700px) {
   .sidebar { position: fixed; z-index: 8; inset: 0 auto 0 0; width: min(82vw, 290px); transform: translateX(-102%); transition: transform .22s ease; box-shadow: 12px 0 40px rgb(29 32 29 / 10%); }
   .sidebar.open { transform: translateX(0); }
@@ -171,6 +179,7 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
   .mode-dialog { padding: 27px 20px 20px; border-radius: 20px; }
 }
 
+/* Honor the operating system accessibility preference for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
