@@ -42,11 +42,13 @@ async def health_check() -> dict[str, str]:
 
 @app.post("/api/chat", response_model=ChatResponse)
 async def create_chat_turn(request: ChatRequest) -> ChatResponse:
-    """Validate the request, call Ollama with the correct prompt, and return its reply.
+    """Start or continue a prompt-guided conversation and return Ollama's reply.
 
     FastAPI parses the JSON into ChatRequest before this function runs. The
     endpoint then loads the selected mode's prompt, prepends it to the
-    conversation, and sends the combined messages to Ollama.
+    conversation, and sends the combined messages to Ollama. If the browser
+    submits an empty history, this is the opening call made right after the
+    user chooses a writing mode; the prompt itself tells Ollama how to begin.
     """
 
     # Load the server-controlled instructions that correspond to the validated
@@ -57,7 +59,10 @@ async def create_chat_turn(request: ChatRequest) -> ChatResponse:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     # Ollama expects chat messages in order. Put the system instructions first,
-    # then pass along the user/assistant history supplied by the browser.
+    # then pass along the user/assistant history supplied by the browser. For
+    # an opening call, this list contains only the system prompt, prompting
+    # Ollama to produce the coach's first natural response without a canned
+    # assistant greeting from the front end.
     ollama_messages = [
         {"role": "system", "content": system_prompt},
         *[message.model_dump() for message in request.messages],

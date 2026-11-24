@@ -1,10 +1,12 @@
 // These mode identifiers are the API contract values. Keep them in sync with
 // WritingMode in backend/schemas.py and the prompt mapping in backend/prompts.py.
 const MODES = {
-  blog_post: { label: 'Blog post', greeting: 'Your blog post chat is ready. What would you like the post to be about?' },
-  facebook: { label: 'Facebook', greeting: 'Your Facebook chat is ready. What would you like to share?' },
-  instagram: { label: 'Instagram', greeting: 'Your Instagram chat is ready. What would you like to share?' },
-  linkedin: { label: 'LinkedIn', greeting: 'Your LinkedIn chat is ready. What would you like to communicate?' },
+  // The browser needs each mode's display label. The actual opening message
+  // comes from Ollama after the backend loads that mode's prompt file.
+  blog_post: { label: 'Blog post' },
+  facebook: { label: 'Facebook' },
+  instagram: { label: 'Instagram' },
+  linkedin: { label: 'LinkedIn' },
 };
 
 // Browser-only storage key and same-origin backend route.
@@ -93,14 +95,15 @@ function closeModePicker() {
 }
 
 function createChat(mode) {
-  // A new chat starts with a local greeting. The model is not called until the
-  // user submits their first message.
+  // Create a conversation with no assistant text written in JavaScript. An
+  // empty message history tells the backend this is the opening turn; it loads
+  // the selected mode's prompt and asks Ollama to begin naturally from it.
   const chat = {
     id: makeId(),
     mode,
     title: MODES[mode].label,
     createdAt: Date.now(),
-    messages: [{ role: 'assistant', content: MODES[mode].greeting }],
+    messages: [],
   };
   chats.unshift(chat);
   activeChatId = chat.id;
@@ -109,6 +112,11 @@ function createChat(mode) {
   closeModePicker();
   closeMobileSidebar();
   messageInput.focus();
+
+  // Start the assistant turn immediately after a mode is selected. The
+  // request contains no user turns yet; the prompt supplies the coaching
+  // behavior and tells the model what to ask first.
+  requestAssistantReply(chat);
 }
 
 function getActiveChat() {
@@ -205,23 +213,17 @@ function render() {
   renderHistory();
 }
 
-async function sendMessage() {
-  // Add the user's text locally, then send the selected mode and full history
-  // to FastAPI. The backend loads the mode prompt and calls Ollama.
-  const chat = getActiveChat();
-  const content = messageInput.value.trim();
-  if (!chat || !content || sendingChatIds.has(chat.id)) return;
+async function requestAssistantReply(chat) {
+  // This shared request function handles both the prompt-guided opening
+  // (messages may be empty) and later replies (messages contain chat history).
+  // Keeping one path ensures every assistant turn uses the selected mode's
+  // prompt and the same loading/error handling.
+  if (sendingChatIds.has(chat.id)) return;
 
-  chat.messages.push({ role: 'user', content });
-  updateChatTitle(chat);
-  messageInput.value = '';
-  resizeInput();
-  updateSendButton();
-  persistChats();
   sendingChatIds.add(chat.id);
   render();
 
-  // Send only the fields accepted by ChatMessage; internal UI fields such as
+  // Send only the fields accepted by ChatMessage. Internal UI fields such as
   // chat title and creation time are not part of the model conversation.
   const requestMessages = chat.messages.map(({ role, content: messageContent }) => ({
     role,
@@ -229,8 +231,8 @@ async function sendMessage() {
   }));
 
   try {
-    // Same-origin POST avoids separate CORS configuration. The response is
-    // JSON with a `reply` field, as defined by ChatResponse in the backend.
+    // Same-origin POST avoids separate CORS configuration. An empty messages
+    // array starts a prompt-only opening; otherwise it carries full context.
     const response = await fetch(CHAT_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -253,7 +255,7 @@ async function sendMessage() {
     chat.messages.push({ role: 'assistant', content: data.reply });
     persistChats();
   } catch (error) {
-    // Keep the user's message visible if the backend or Ollama is unavailable.
+    // Keep the conversation available if the backend or Ollama is unavailable.
     // The temporary notice explains why no assistant response was added.
     const message = error instanceof Error ? error.message : 'The chat request failed.';
     showNotice(`Could not get a reply: ${message}`);
@@ -263,6 +265,24 @@ async function sendMessage() {
     render();
     if (activeChatId === chat.id) messageInput.focus();
   }
+}
+
+function sendMessage() {
+  // Add the user's text locally and then ask the shared reply function to send
+  // the selected mode and complete conversation history to FastAPI.
+  const chat = getActiveChat();
+  const content = messageInput.value.trim();
+  if (!chat || !content || sendingChatIds.has(chat.id)) return;
+
+  chat.messages.push({ role: 'user', content });
+  updateChatTitle(chat);
+  messageInput.value = '';
+  resizeInput();
+  updateSendButton();
+  persistChats();
+  render();
+
+  requestAssistantReply(chat);
 }
 
 function updateSendButton() {

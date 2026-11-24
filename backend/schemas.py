@@ -39,7 +39,13 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    """The data the browser sends when the user submits a new chat turn."""
+    """The data the browser sends to start or continue a conversation.
+
+    An empty ``messages`` list means the user has just chosen a writing mode
+    and the backend should ask Ollama to produce the prompt-guided opening.
+    A non-empty list means the user has sent a turn and the full conversation
+    history is included for context.
+    """
 
     # As with ChatMessage, reject fields outside this API contract.
     model_config = ConfigDict(extra="forbid")
@@ -51,17 +57,19 @@ class ChatRequest(BaseModel):
     # another client can omit it; main.py creates one for the response then.
     chat_id: str | None = Field(default=None, min_length=1, max_length=128)
 
-    # The browser sends prior user/assistant turns so Ollama has context.
-    # These bounds cap the number of turns and the request size per turn.
-    messages: list[ChatMessage] = Field(min_length=1, max_length=50)
+    # The browser sends prior user/assistant turns so Ollama has context. An
+    # empty list is allowed for the initial prompt-only opening call. These
+    # bounds cap the history length and each message's size.
+    messages: list[ChatMessage] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def latest_message_must_be_from_user(self) -> "ChatRequest":
-        """Require a new user turn at the end of every submitted history."""
+        """When continuing a chat, require the newest turn to come from the user."""
 
-        # The endpoint is called only after the user sends something. This
-        # check catches requests that contain history but no new user input.
-        if self.messages[-1].role != "user":
+        # Empty history is the intentional startup request sent immediately
+        # after mode selection. Otherwise, the endpoint should have been
+        # called in response to a fresh user message.
+        if self.messages and self.messages[-1].role != "user":
             raise ValueError("The last message must be from the user.")
         return self
 
