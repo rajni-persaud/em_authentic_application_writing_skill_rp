@@ -174,7 +174,7 @@ Select a writing mode to view its instructions. Each mode starts with the built-
 
 ### Built-in tools
 
-Enable or disable the word/character counter and character-limit checker. The count tools are deterministic: they count Unicode code points, including spaces and line breaks when reporting total characters. A character-limit check uses the limit supplied by the user; the tool does not guess current platform limits.
+Enable or disable the word/character counter and character-limit checker. The count tools are deterministic: they count Unicode code points, including spaces and line breaks when reporting total characters. A character-limit check uses the limit supplied by the user; the tool does not guess current platform limits. Models must support tool calls to use these tools. Ollama's Gemma 3 models reject tool calls, so the app pauses the counting tools and Harness skills for those models and explains this on the settings page. Their saved selections remain in place for when you switch to a model that supports tools.
 
 ### Harness skills
 

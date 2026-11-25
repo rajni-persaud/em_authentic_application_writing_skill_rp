@@ -140,6 +140,8 @@ function createChat(mode) {
   requestAssistantReply(chat);
 }
 
+// Resolve the selected conversation by ID each time instead of retaining an
+// object reference that could become stale after history is re-rendered.
 function getActiveChat() {
   return chats.find((chat) => chat.id === activeChatId) || null;
 }

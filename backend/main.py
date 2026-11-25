@@ -27,6 +27,7 @@ from backend.settings_store import (
     get_openai_api_key,
     list_skills,
     load_settings,
+    model_supports_agent_tools,
     save_settings,
     update_skill,
     update_session_key,
@@ -77,6 +78,15 @@ async def get_settings() -> dict[str, object]:
             {"id": tool_id, **details, "enabled": tool_id in settings.enabled_tools}
             for tool_id, details in AVAILABLE_TOOLS.items()
         ],
+        "tool_support": {
+            "supported": model_supports_agent_tools(settings.provider, settings.model),
+            "notice": (
+                "Ollama's Gemma 3 models reject tool calls. Counting tools and Harness skills are paused "
+                "for this model; switch to a tool-capable model to use them. Your selections are kept."
+                if not model_supports_agent_tools(settings.provider, settings.model)
+                else "The selected provider/model is configured to receive enabled tools and skills."
+            ),
+        },
         "skills": list_skills(),
         "openai_api_key_configured": bool(get_openai_api_key()),
     }
@@ -105,6 +115,15 @@ async def update_settings(request: SettingsUpdate) -> dict[str, object]:
     return {
         "settings": settings.model_dump(mode="json"),
         "openai_api_key_configured": bool(get_openai_api_key()),
+        "tool_support": {
+            "supported": model_supports_agent_tools(settings.provider, settings.model),
+            "notice": (
+                "Ollama's Gemma 3 models reject tool calls. Counting tools and Harness skills are paused "
+                "for this model; switch to a tool-capable model to use them. Your selections are kept."
+                if not model_supports_agent_tools(settings.provider, settings.model)
+                else "The selected provider/model is configured to receive enabled tools and skills."
+            ),
+        },
         "message": "Settings saved on this computer.",
     }
 
@@ -181,6 +200,14 @@ async def create_chat_turn(request: ChatRequest) -> ChatResponse:
             detail=f"Cannot connect to {provider_hint}. Check the provider settings and try again.",
         ) from exc
     except Exception as exc:
+        if "does not support tools" in str(exc).casefold():
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "The selected model rejected tool calls. Disable its tools and Harness skills, "
+                    "or choose a model that supports tool use."
+                ),
+            ) from exc
         # Avoid returning provider internals (which can include request data or
         # credential details) to the browser. Keep diagnostics in the local log.
         logger.exception("Pydantic AI request failed for provider %s", settings.provider)

@@ -159,38 +159,43 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
 .settings-button { padding: 8px 11px; }
 .settings-button { display: inline-flex; align-items: center; text-decoration: none; }
 .settings-button:hover, .secondary-button:hover { border-color: #b8c9bd; background: #f8fbf8; }
-.settings-page-shell { width: 100%; min-height: 100vh; padding: 25px 16px 50px; }
-.settings-page-top { display: flex; width: min(100%, 820px); align-items: center; justify-content: space-between; margin: 0 auto 14px; }
-.settings-back-link { color: #526c5f; text-decoration: none; font-size: 12px; font-weight: 650; }
+/* Dedicated settings page: center the content and give it a quiet, light
+   backdrop so the form reads as a focused workspace separate from chat. */
+.settings-page-shell { width: 100%; min-height: 100vh; padding: 30px 18px 56px; background: radial-gradient(ellipse at 50% 0, #edf2ee 0, #f7f7f5 46%, #f7f7f5 100%); }
+.settings-page-top { display: flex; width: min(100%, 900px); align-items: center; justify-content: space-between; margin: 0 auto 17px; }
+.settings-back-link { color: #526c5f; text-decoration: none; font-size: 13px; font-weight: 650; }
 .settings-back-link:hover { color: var(--accent-dark); text-decoration: underline; }
 .settings-local-label { display: inline-flex; align-items: center; gap: 8px; color: #777873; font-size: 10px; }
 .settings-local-label .status-dot { width: 6px; height: 6px; }
-.settings-dialog { width: min(100%, 820px); max-height: none; overflow: visible; margin: 0 auto; padding: 27px 30px 22px; border: 1px solid #e9e7e1; border-radius: 18px; background: white; box-shadow: 0 14px 46px rgb(32 33 31 / 7%); }
+.settings-dialog { width: min(100%, 900px); max-height: none; overflow: visible; margin: 0 auto; padding: 34px 42px 30px; border: 1px solid #e7eae5; border-radius: 22px; background: white; box-shadow: 0 18px 55px rgb(32 45 38 / 8%); }
 .settings-page-card { animation: none; }
 .settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.settings-header h1 { margin: 0; font-size: 30px; font-weight: 650; line-height: 1.2; letter-spacing: -1px; }
-.settings-intro { margin: 10px 0 18px; color: #777873; font-size: 12px; line-height: 1.6; }
-.settings-section { padding: 18px 0; border-top: 1px solid var(--line); }
-.settings-section h2 { margin: 0 0 12px; font-size: 14px; font-weight: 700; line-height: 1.3; letter-spacing: 0; }
+.settings-header h1 { margin: 0; font-size: clamp(29px, 4vw, 36px); font-weight: 650; line-height: 1.2; letter-spacing: -1.2px; }
+.settings-intro { max-width: 680px; margin: 11px 0 22px; color: #73776f; font-size: 13px; line-height: 1.7; }
+/* Each settings group uses the same spacing and divider to make the long form
+   easy to scan from provider setup through prompts, tools, and skills. */
+.settings-section { padding: 24px 0; border-top: 1px solid #eceeea; }
+.settings-section h2 { margin: 0 0 14px; font-size: 16px; font-weight: 700; line-height: 1.35; letter-spacing: -.2px; }
 .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.settings-field { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; color: #63645e; font-size: 10px; font-weight: 650; }
-.settings-field input, .settings-field select, .settings-field textarea, .prompt-editor { width: 100%; min-width: 0; padding: 10px 11px; border: 1px solid #e1e1db; border-radius: 9px; background: white; color: var(--ink); font: 12px/1.55 ui-sans-serif, system-ui, sans-serif; }
+.settings-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 14px; color: #4f554f; font-size: 12px; font-weight: 650; }
+.settings-field input, .settings-field select, .settings-field textarea, .prompt-editor { width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #dfe4de; border-radius: 10px; background: #fff; color: var(--ink); font: 13px/1.55 ui-sans-serif, system-ui, sans-serif; }
 .settings-field input:focus, .settings-field select:focus, .settings-field textarea:focus, .prompt-editor:focus { border-color: #9fb7a8; outline: 3px solid rgb(65 103 91 / 9%); }
 .settings-field textarea, .prompt-editor { resize: vertical; }
-.settings-help { margin: 5px 0 11px; color: #85867f; font-size: 10px; line-height: 1.55; }
+.settings-help { margin: 6px 0 12px; color: #777d75; font-size: 12px; line-height: 1.6; }
 .settings-help code { padding: 1px 4px; border-radius: 4px; background: #f0efeb; color: #585951; }
-.settings-check { display: flex; align-items: center; gap: 8px; margin: 8px 0; color: #555750; font-size: 11px; }
+.settings-warning { margin: 4px 0 14px; padding: 12px 14px; border: 1px solid #ead7b6; border-radius: 10px; background: #fff9ed; color: #735d36; font-size: 12px; line-height: 1.55; }
+.settings-check { display: flex; align-items: center; gap: 9px; margin: 10px 0; color: #4f554f; font-size: 12px; }
 .settings-check input, .settings-option input { accent-color: var(--accent); }
-.prompt-editor { min-height: 220px; margin: 7px 0 9px; font: 11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.prompt-editor { min-height: 340px; margin: 8px 0 10px; padding: 14px; font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace; }
 .settings-options { display: flex; flex-direction: column; gap: 8px; }
-.settings-option { display: flex; align-items: flex-start; gap: 9px; padding: 10px 11px; border: 1px solid #e8e6e1; border-radius: 10px; background: white; }
+.settings-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px 13px; border: 1px solid #e6e9e4; border-radius: 11px; background: #fff; }
 .settings-option input { margin-top: 2px; }
 .settings-option-copy { display: flex; flex-direction: column; gap: 3px; }
-.settings-option-copy strong { color: #42443f; font-size: 11px; }
-.settings-option-copy small { color: #85867f; font-size: 10px; line-height: 1.45; }
-.skill-create { margin-top: 14px; border: 1px solid #e8e6e1; border-radius: 10px; background: rgb(255 255 255 / 65%); }
-.skill-create summary { padding: 11px 12px; color: #4f6258; cursor: pointer; font-size: 11px; font-weight: 650; }
-.skill-create-fields { padding: 8px 12px 12px; }
+.settings-option-copy strong { color: #383e39; font-size: 13px; }
+.settings-option-copy small { color: #777d75; font-size: 11px; line-height: 1.5; }
+.skill-create { margin-top: 16px; border: 1px solid #e6e9e4; border-radius: 12px; background: #fbfcfa; }
+.skill-create summary { padding: 13px 14px; color: #426456; cursor: pointer; font-size: 12px; font-weight: 650; }
+.skill-create-fields { padding: 8px 14px 15px; }
 .skill-form-actions { display: flex; gap: 8px; }
 .skill-option { align-items: flex-start; }
 .skill-option .settings-option-copy { flex: 1; }
@@ -199,8 +204,10 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
 .secondary-button { padding: 8px 10px; }
 .primary-button { padding: 10px 15px; border-color: var(--accent); background: var(--accent); color: white; }
 .primary-button:hover { background: var(--accent-dark); }
-.settings-actions { position: sticky; bottom: -22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -30px -22px; padding: 13px 30px; border-top: 1px solid var(--line); background: rgb(251 250 248 / 96%); }
-.settings-save-status { color: #68796f; font-size: 10px; }
+/* Keep save feedback and the primary action visible near the bottom of the
+   viewport while users scroll through a long prompt or skills list. */
+.settings-actions { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 -42px -30px; padding: 16px 42px; border-top: 1px solid #e9ece7; border-radius: 0 0 22px 22px; background: rgb(255 255 255 / 96%); }
+.settings-save-status { color: #68796f; font-size: 12px; }
 .settings-save-status.error { color: #a44f45; }
 
 /* Small transitions add feedback while respecting the reduced-motion setting below. */
@@ -228,9 +235,10 @@ h1 { font-size: clamp(30px, 4.4vw, 43px); font-weight: 600; line-height: 1.18; }
   .message-content { font-size: 13px; }
   .mode-dialog { padding: 27px 20px 20px; border-radius: 20px; }
   .settings-page-shell { padding: 14px 10px 30px; }
-  .settings-dialog { padding: 22px 18px 18px; }
+  .settings-dialog { padding: 23px 18px 18px; border-radius: 17px; }
   .settings-grid { grid-template-columns: 1fr; gap: 0; }
-  .settings-actions { bottom: -18px; margin: 0 -18px -18px; padding: 12px 18px; }
+  .settings-actions { margin: 0 -18px -18px; padding: 12px 18px; border-radius: 0 0 17px 17px; }
+  .prompt-editor { min-height: 260px; }
 }
 
 /* Honor the operating system accessibility preference for reduced motion. */

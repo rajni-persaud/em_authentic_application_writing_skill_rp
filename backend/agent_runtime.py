@@ -13,6 +13,7 @@ from backend.settings_store import (
     LOCAL_DATA_DIR,
     LocalSettings,
     get_openai_api_key,
+    model_supports_agent_tools,
 )
 
 
@@ -53,8 +54,14 @@ def _build_agent(settings: LocalSettings, system_prompt: str) -> "Agent":
     from pydantic_ai.workspaces import LocalWorkspaceBackend
     from pydantic_ai_harness import Skills
 
+    # Some local models (including the user's current Gemma 3 4B) reject any
+    # request that advertises tools. Keep the writing chat usable by omitting
+    # all tool-based capabilities for that model. Selections remain saved so
+    # they can become active again after switching to a compatible model.
+    tools_supported = model_supports_agent_tools(settings.provider, settings.model)
+
     capabilities = []
-    if settings.enabled_skills:
+    if tools_supported and settings.enabled_skills:
         capabilities.append(
             Skills(
                 "skills",
@@ -64,13 +71,13 @@ def _build_agent(settings: LocalSettings, system_prompt: str) -> "Agent":
         )
 
     tool_guidance = []
-    if "word_character_count" in settings.enabled_tools:
+    if tools_supported and "word_character_count" in settings.enabled_tools:
         tool_guidance.append(
             "When the user asks for an exact word or character count of supplied text, "
             "use the word_character_count tool instead of estimating. Explain that "
             "characters include spaces and line breaks unless the user asks otherwise."
         )
-    if "character_limit_check" in settings.enabled_tools:
+    if tools_supported and "character_limit_check" in settings.enabled_tools:
         tool_guidance.append(
             "When the user asks whether text fits a character limit, use the "
             "character_limit_check tool. If no limit is supplied, ask for it; do not "

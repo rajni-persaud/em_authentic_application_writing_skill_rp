@@ -1,6 +1,11 @@
+# HTTP API layer and ASGI server used to expose the local chat interface.
 fastapi
 uvicorn
+# Request/response validation used by FastAPI schemas and local settings.
 pydantic>=2.7
+# Shared async HTTP client dependency used by provider integrations and errors.
 httpx
+# Provider extras include OpenAI-compatible model support used by Ollama and OpenAI.
 pydantic-ai-slim[openai]
+# Harness Skills loads selectable SKILL.md instruction bundles for the agent.
 pydantic-ai-harness[skills]
