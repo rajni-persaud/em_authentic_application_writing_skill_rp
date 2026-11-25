@@ -1,125 +1,197 @@
-"""FastAPI application for the voice-first writing coach.
+"""FastAPI application for the locally configurable writing coach.
 
-This module connects the browser, the selected prompt file, and the local
-Ollama server. It also serves the static HTML/CSS/JavaScript interface.
+The API validates browser requests, loads the selected writing prompt and
+single-machine configuration, then delegates generation to a Pydantic AI
+agent. FastAPI also serves the HTML/CSS/JavaScript app from the same origin.
 """
 
-import os
+import logging
 from pathlib import Path
 from uuid import uuid4
 
 import httpx
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.agent_runtime import generate_reply
 from backend.prompts import load_system_prompt
-from backend.schemas import ChatRequest, ChatResponse
+from backend.schemas import ChatRequest, ChatResponse, WritingMode
+from backend.settings_store import (
+    AVAILABLE_TOOLS,
+    LocalSettings,
+    SettingsUpdate,
+    SkillDefinition,
+    create_skill,
+    delete_skill,
+    get_openai_api_key,
+    list_skills,
+    load_settings,
+    save_settings,
+    update_skill,
+    update_session_key,
+)
 
 
-# Allow the Ollama address and model to be changed for another local setup
-# without editing source code. The defaults match the current Windows setup.
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
-
-# Resolve front-end files relative to this Python file, not the shell's
-# current directory, so the app can serve them wherever it is launched from.
+logger = logging.getLogger(__name__)
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "front-end"
 
-
 app = FastAPI(
-    title="Voice-first Writing Coach",
-    description="Local API for blog post, Facebook, Instagram, and LinkedIn coaching.",
-    version="0.1.0",
+    title="Local Writing Coach",
+    description="A configurable local writing coach using Pydantic AI and Ollama or OpenAI.",
+    version="0.2.0",
 )
 
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
-    """Report that FastAPI is running; this does not check Ollama itself."""
+    """Report that FastAPI is running; provider availability is checked on use."""
 
     return {"status": "ok"}
 
 
-@app.post("/api/chat", response_model=ChatResponse)
-async def create_chat_turn(request: ChatRequest) -> ChatResponse:
-    """Start or continue a prompt-guided conversation and return Ollama's reply.
+@app.get("/agent_settings", include_in_schema=False)
+async def agent_settings_page() -> FileResponse:
+    """Serve the dedicated settings page from the front-end directory."""
 
-    FastAPI parses the JSON into ChatRequest before this function runs. The
-    endpoint then loads the selected mode's prompt, prepends it to the
-    conversation, and sends the combined messages to Ollama. If the browser
-    submits an empty history, this is the opening call made right after the
-    user chooses a writing mode; the prompt itself tells Ollama how to begin.
+    return FileResponse(FRONTEND_DIR / "agent_settings.html")
+
+
+@app.get("/api/settings")
+async def get_settings() -> dict[str, object]:
+    """Return the local configuration, built-in prompts, tools, and skills.
+
+    The API key is never returned. The browser receives only whether a key is
+    available, so an entered key cannot be read back from the settings screen.
     """
 
-    # Load the server-controlled instructions that correspond to the validated
-    # mode. A missing or empty prompt is a server configuration problem.
-    try:
-        system_prompt = load_system_prompt(request.mode)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    settings = load_settings()
+    defaults = {
+        mode.value: load_system_prompt(mode)
+        for mode in WritingMode
+    }
+    return {
+        "settings": settings.model_dump(mode="json"),
+        "default_prompts": defaults,
+        "available_tools": [
+            {"id": tool_id, **details, "enabled": tool_id in settings.enabled_tools}
+            for tool_id, details in AVAILABLE_TOOLS.items()
+        ],
+        "skills": list_skills(),
+        "openai_api_key_configured": bool(get_openai_api_key()),
+    }
 
-    # Ollama expects chat messages in order. Put the system instructions first,
-    # then pass along the user/assistant history supplied by the browser. For
-    # an opening call, this list contains only the system prompt, prompting
-    # Ollama to produce the coach's first natural response without a canned
-    # assistant greeting from the front end.
-    ollama_messages = [
-        {"role": "system", "content": system_prompt},
-        *[message.model_dump() for message in request.messages],
-    ]
 
-    # Make a non-streaming request for the first version of the app. The
-    # longer overall timeout allows a local model time to load and generate;
-    # the shorter connect timeout catches a stopped Ollama service promptly.
+@app.put("/api/settings")
+async def update_settings(request: SettingsUpdate) -> dict[str, object]:
+    """Validate and save provider, model, prompt, tool, and skill selections."""
+
+    available_skill_ids = {skill["id"] for skill in list_skills()}
+    missing_skills = set(request.enabled_skills) - available_skill_ids
+    if missing_skills:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown skill selection: {', '.join(sorted(missing_skills))}",
+        )
+
+    # Strip transient credentials from the persisted model. API keys remain in
+    # process memory only; an environment variable can also supply the key.
+    persistent_data = request.model_dump(
+        exclude={"openai_api_key", "forget_openai_api_key"},
+    )
+    settings = LocalSettings.model_validate(persistent_data)
+    save_settings(settings)
+    update_session_key(request.openai_api_key, forget=request.forget_openai_api_key)
+    return {
+        "settings": settings.model_dump(mode="json"),
+        "openai_api_key_configured": bool(get_openai_api_key()),
+        "message": "Settings saved on this computer.",
+    }
+
+
+@app.post("/api/skills", status_code=201)
+async def add_skill(request: SkillDefinition) -> dict[str, str]:
+    """Save a local SKILL.md instruction package for the Harness Skills API."""
+
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(180.0, connect=5.0)) as client:
-            response = await client.post(
-                f"{OLLAMA_BASE_URL}/api/chat",
-                json={
-                    "model": OLLAMA_MODEL,
-                    "messages": ollama_messages,
-                    "stream": False,
-                },
-            )
-            response.raise_for_status()
-    except httpx.ConnectError as exc:
-        # Ollama is a separate local process; this usually means its desktop
-        # app/server is not running or is listening at another address.
+        return create_skill(request)
+    except FileExistsError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.put("/api/skills/{skill_id}")
+async def edit_skill(skill_id: str, request: SkillDefinition) -> dict[str, str]:
+    """Update instructions for a selected local Harness skill."""
+
+    try:
+        return update_skill(skill_id, request)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.delete("/api/skills/{skill_id}")
+async def remove_skill(skill_id: str) -> dict[str, str]:
+    """Delete a locally authored skill and remove it from enabled settings."""
+
+    try:
+        delete_skill(skill_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"message": "Skill deleted."}
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def create_chat_turn(request: ChatRequest) -> ChatResponse:
+    """Run a prompt-guided turn using this installation's selected agent setup."""
+
+    settings = load_settings()
+    system_prompt = settings.prompt_overrides.get(request.mode)
+    if system_prompt is None:
+        try:
+            system_prompt = load_system_prompt(request.mode)
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    try:
+        reply = await generate_reply(settings, system_prompt, request.messages)
+    except ValueError as exc:
+        # Missing provider credentials and invalid local model configuration
+        # are actionable setup problems and can be shown directly to the user.
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ImportError as exc:
         raise HTTPException(
             status_code=503,
-            detail="Cannot connect to Ollama. Make sure the Ollama app is running.",
+            detail="Pydantic AI dependencies are missing. Install backend requirements and restart the server.",
         ) from exc
-    except httpx.TimeoutException as exc:
-        # Translate the client timeout into an HTTP gateway timeout that the
-        # browser can display as a useful message.
+    except (TimeoutError, httpx.TimeoutException) as exc:
         raise HTTPException(
             status_code=504,
-            detail="Ollama took too long to respond. Try again in a moment.",
+            detail="The selected model took too long to respond. Check it is running and try again.",
         ) from exc
-    except httpx.HTTPStatusError as exc:
-        # Ollama responded, but rejected the request (often because the model
-        # name is unavailable). Do not pass raw internal response details on.
+    except httpx.ConnectError as exc:
+        provider_hint = "Ollama" if settings.provider == "ollama" else "OpenAI"
+        raise HTTPException(
+            status_code=503,
+            detail=f"Cannot connect to {provider_hint}. Check the provider settings and try again.",
+        ) from exc
+    except Exception as exc:
+        # Avoid returning provider internals (which can include request data or
+        # credential details) to the browser. Keep diagnostics in the local log.
+        logger.exception("Pydantic AI request failed for provider %s", settings.provider)
         raise HTTPException(
             status_code=502,
-            detail=(
-                "Ollama could not process the request. Confirm the configured model "
-                f"'{OLLAMA_MODEL}' is installed and available."
-            ),
+            detail="The agent could not complete this request. Check the backend terminal for details.",
         ) from exc
 
-    # Decode and validate Ollama's JSON before constructing our API response.
-    try:
-        data = response.json()
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Ollama returned an invalid response.") from exc
+    if not reply.strip():
+        raise HTTPException(status_code=502, detail="The selected model returned an empty reply.")
 
-    message = data.get("message") if isinstance(data, dict) else None
-    reply = message.get("content") if isinstance(message, dict) else None
-    if not isinstance(reply, str) or not reply.strip():
-        raise HTTPException(status_code=502, detail="Ollama returned an empty reply.")
-
-    # Reuse the browser's chat ID when present. Otherwise create one so the
-    # response always has an identifier the front end can associate with it.
     return ChatResponse(
         chat_id=request.chat_id or str(uuid4()),
         mode=request.mode,
@@ -127,7 +199,6 @@ async def create_chat_turn(request: ChatRequest) -> ChatResponse:
     )
 
 
-# Mount static files after the API routes so paths like /api/chat and /health
-# are handled by FastAPI first, while / serves front-end/index.html. Serving
-# both on one origin lets the browser call /api/chat without CORS settings.
+# Register static hosting after API routes so requests for API paths are
+# resolved first, and the chat UI and API stay on one local origin.
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

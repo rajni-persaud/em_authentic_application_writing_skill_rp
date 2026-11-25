@@ -1,253 +1,220 @@
 # Local Writing Coach
 
-A browser-based writing coach for four formats: blog posts, Facebook posts, Instagram posts, and LinkedIn posts. The app uses a small HTML/CSS/JavaScript front end, a Python FastAPI backend, and a locally running Ollama model. The mode-specific coaching instructions are stored as prompt files in `writing_prompts/`.
+A local chat app for coaching blog posts, Facebook posts, Instagram posts, and LinkedIn posts. The front end is plain HTML, CSS, and JavaScript. The Python backend uses FastAPI and Pydantic AI, and can send requests to Ollama on this computer or to OpenAI. Pydantic AI Harness Skills provide optional, user-authored instruction packages.
 
-This guide explains how to clone the repository and run it on a new computer. The commands cover Windows PowerShell, macOS, and Linux; Windows instructions are listed first.
+This guide covers cloning the repository and setting it up on Windows, macOS, or Linux. The app is designed for one local installation; it does not have user accounts.
 
-## What you need
+## Requirements
 
-- Git, to clone the repository.
-- Python 3.11 or newer. Python 3.11 is the minimum because the backend uses `StrEnum`.
-- Ollama, which runs the language model on your computer.
-- Internet access for the initial software and model downloads. Once Ollama has downloaded the model, chat generation runs against the local Ollama service; this app does not require an OpenAI API key.
-- Enough disk space and memory for the Ollama model you choose. The default `gemma3:4b` model is several gigabytes.
+- Git.
+- Python 3.11 or newer.
+- Ollama for local model use, or an OpenAI API key for OpenAI model use.
+- Internet access to install Python packages, download Ollama/models, and contact OpenAI when using its provider.
 
-Get Python from [python.org](https://www.python.org/downloads/). Install Git from [git-scm.com](https://git-scm.com/downloads). Install Ollama from the [official Ollama download page](https://ollama.com/download).
+Install [Git](https://git-scm.com/downloads), [Python](https://www.python.org/downloads/), and [Ollama](https://ollama.com/download) from their official sites. Python 3.11+ is required because the backend uses `StrEnum`.
 
 ## 1. Clone the repository
 
-Open PowerShell, Terminal, or a shell. On the repository's Git hosting page, select **Code** (or the equivalent) and copy its HTTPS clone URL. Replace the placeholder below with that URL:
+On the Git hosting page for this repository, choose **Code** and copy the HTTPS clone URL. In PowerShell, Terminal, or another shell, replace the placeholders with that URL and the folder it creates:
 
 ```text
 git clone <repository-url>
 cd <repository-folder>
 ```
 
-For example, if the URL ends in `/writing-coach.git`, the folder will usually be `writing-coach`:
+Run the commands below from the repository root, the folder containing `README.md`, `backend/`, `front-end/`, and `writing_prompts/`.
+
+## 2. Set up a model provider
+
+### Option A: Ollama (local, default)
+
+Install Ollama from its [official download page](https://ollama.com/download), launch it, and leave it running while you use the app.
+
+On Windows, open a new PowerShell window after installation. On macOS and Linux, use Terminal. Check the command:
 
 ```text
-git clone https://host.example/account/repository.git
-cd repository
-```
-
-The example host and URL above are placeholders; use the actual clone URL for this project. Run the later commands from the repository root, the directory containing `README.md`, `backend/`, `front-end/`, and `writing_prompts/`.
-
-## 2. Install and start Ollama
-
-### Windows
-
-1. Download and run the installer from [Ollama for Windows](https://ollama.com/download/windows).
-2. Launch Ollama from the Start menu. Ollama runs a local service that the backend contacts at `http://localhost:11434`.
-3. Open a **new** PowerShell window after installation so it sees any updated PATH settings.
-4. Check that the command is available:
-
-   ```powershell
-   ollama --version
-   ```
-
-### macOS
-
-1. Download and install Ollama from the [official download page](https://ollama.com/download/mac).
-2. Open the Ollama app and leave it running while using the writing coach.
-3. Open Terminal and check the command:
-
-   ```bash
-   ollama --version
-   ```
-
-### Linux
-
-Follow the current instructions on [Ollama's Linux download page](https://ollama.com/download/linux). After installing, start the Ollama service as described there, then check:
-
-```bash
 ollama --version
 ```
 
-### Download and check the default model
-
-The backend defaults to the Ollama model named `gemma3:4b`. Download and run it once:
+Download the default model and confirm it responds:
 
 ```text
 ollama run gemma3:4b
 ```
 
-The first run downloads the model and can take a while. When Ollama shows its interactive prompt, enter a simple question to make sure it responds. Type `/bye` to leave the model prompt. To confirm that Ollama has the model afterward, run:
+At the model prompt, enter a question. Type `/bye` to exit, then verify the model is installed:
 
 ```text
 ollama list
 ```
 
-Model details and available sizes are listed on the [Ollama Gemma 3 page](https://ollama.com/library/gemma3). If you choose another model, download it with `ollama pull <model-name>` and configure the backend to use that exact name as described under [Optional model configuration](#optional-model-configuration).
+The app's initial provider is Ollama and its initial model is `gemma3:4b`. You can change both later from **Agent settings**. If you select a different Ollama model, download it first with `ollama pull <model-name>` and enter its exact name in settings. Ollama's [Gemma 3 library page](https://ollama.com/library/gemma3) lists the available model variants.
 
-## 3. Create a Python virtual environment
+Windows installer and command troubleshooting are covered on the [Ollama Windows page](https://ollama.com/download/windows). For macOS or Linux installation details, use the corresponding instructions on [ollama.com/download](https://ollama.com/download).
 
-The virtual environment keeps this app's Python packages separate from other Python projects on your computer. Create it from the repository root.
+### Option B: OpenAI (cloud)
+
+OpenAI model requests require an API key and may incur API charges. Create a key through your OpenAI account and keep it private.
+
+There are two ways to provide the key:
+
+1. In the app's **Agent settings**, select **OpenAI**, enter a model name and paste the key. The key is sent to the local backend and held in backend memory until the backend stops. It is not saved in the browser's local storage or the local settings file. Enter it again after restarting the backend.
+2. Set the `OPENAI_API_KEY` environment variable in the terminal before starting the backend. This lets the backend read the key after a restart, without putting it in the app's settings file.
+
+PowerShell:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+macOS/Linux:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+In **Agent settings**, choose the OpenAI provider and enter a model name available to your account. The key is used only by the backend to authenticate requests to OpenAI. When OpenAI is selected, prompts and chat messages are sent to OpenAI for model processing; they are not being processed locally by Ollama.
+
+## 3. Create the Python environment and install dependencies
+
+The virtual environment installs this app's Python packages separately from other projects.
 
 ### Windows PowerShell
 
-Check that Python is installed:
+Confirm Python is 3.11 or newer:
 
 ```powershell
 python --version
 ```
 
-The version must be 3.11 or newer. If `python` is not recognized, try the Windows Python launcher:
+If `python` is not recognized, try the Windows launcher:
 
 ```powershell
 py -3 --version
 ```
 
-Create the environment and install the backend packages:
+Create the virtual environment. Use `python` or `py -3` according to which command works and reports Python 3.11+:
 
 ```powershell
 python -m venv backend\.venv
+```
+
+Install the dependencies using that environment's Python:
+
+```powershell
 & ".\backend\.venv\Scripts\python.exe" -m pip install --upgrade pip
-& ".\backend\.venv\Scripts\python.exe" -m pip install fastapi uvicorn pydantic httpx
+& ".\backend\.venv\Scripts\python.exe" -m pip install -r backend\requirements.txt
 ```
 
-If you used `py -3` to find Python, use it to create the environment instead:
+Activation is optional. If PowerShell blocks it, skip activation and use the full virtual-environment Python path above.
 
-```powershell
-py -3 -m venv backend\.venv
-```
-
-The package install commands above use the environment's Python directly, so PowerShell activation is not required. You can activate it for the current terminal if you prefer:
-
-```powershell
-.\backend\.venv\Scripts\Activate.ps1
-```
-
-If PowerShell blocks activation because of its execution policy, skip activation and continue using the full `backend\.venv\Scripts\python.exe` path shown above. Do not change your computer's execution policy just for this app.
+If you used `py -3` to create the environment, use the same `backend\.venv\Scripts\python.exe` path for installation and launch.
 
 ### macOS and Linux
 
-Check for Python 3.11 or newer:
+Confirm Python 3.11 or newer:
 
 ```bash
 python3 --version
 ```
 
-Create and activate the virtual environment, then install the packages:
+Create and activate the environment, then install dependencies:
 
 ```bash
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install fastapi uvicorn pydantic httpx
+python -m pip install -r backend/requirements.txt
 ```
 
-If `python3 -m venv` reports that the `venv` module is unavailable, install the Python virtual-environment package provided by your operating system and repeat these commands.
+If the operating system reports that the `venv` module is missing, install its Python virtual-environment package and repeat the commands.
 
-## 4. (Optional) Choose a different Ollama model
+The requirements include FastAPI and Uvicorn for the web server, Pydantic for validation, Pydantic AI for provider/model support, and Pydantic AI Harness Skills for loading selected `SKILL.md` instructions.
 
-If you downloaded a model other than `gemma3:4b`, set `OLLAMA_MODEL` to its exact Ollama name before starting the backend.
+## 4. Start the backend and open the app
 
-Windows PowerShell, for the current terminal only:
+Make sure Ollama is running if Ollama is selected. From the repository root, launch Uvicorn.
 
-```powershell
-$env:OLLAMA_MODEL = "<model-name>"
-```
-
-macOS/Linux, for the current terminal only:
-
-```bash
-export OLLAMA_MODEL="<model-name>"
-```
-
-The default Ollama address is `http://localhost:11434`, so most local installs need no URL setting. If your Ollama service uses a different address, set `OLLAMA_BASE_URL` in the same terminal before starting the backend:
-
-```powershell
-$env:OLLAMA_BASE_URL = "http://localhost:11434"
-```
-
-```bash
-export OLLAMA_BASE_URL="http://localhost:11434"
-```
-
-These variables apply only to the terminal session where they are set. Set them again in a new terminal if needed.
-
-## 5. Start the writing coach
-
-Make sure Ollama is running, then open a terminal at the repository root. Start the backend with the virtual environment's Python.
-
-### Windows PowerShell
+Windows PowerShell:
 
 ```powershell
 & ".\backend\.venv\Scripts\python.exe" -m uvicorn backend.main:app --reload
 ```
 
-### macOS and Linux
-
-If the environment is activated:
+macOS/Linux with the environment activated:
 
 ```bash
 python -m uvicorn backend.main:app --reload
 ```
 
-Or use its Python executable directly, without activating:
+Or launch directly without activating:
 
 ```bash
 ./backend/.venv/bin/python -m uvicorn backend.main:app --reload
 ```
 
-Keep this terminal open while using the app. Uvicorn prints a local address when the server is ready. Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser. The API's interactive documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs), and its basic health check is at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health).
+Keep the terminal open. Visit [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser. The interactive API documentation is at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs), and the basic backend health check is at [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health). Stop the backend with **Ctrl+C**.
 
-To stop the backend, return to its terminal and press **Ctrl+C**. Ollama is a separate app or service; leave it running if you plan to use the coach again.
+The UI and API are served from the same origin. Keep the backend bound to its default local address for personal local use; do not expose it to your network without adding authentication and security controls.
 
-## 6. Start a writing conversation
+## 5. Configure the agent in the app
 
-1. In the app, select the **plus** button to create a chat.
-2. Choose **Blog post**, **Facebook**, **Instagram**, or **LinkedIn**.
-3. The browser sends the selected mode and an empty conversation to the backend. The backend loads that mode's prompt from `writing_prompts/` and asks Ollama for the prompt-guided opening response.
-4. Continue the conversation in the chat box. The app sends the selected mode and conversation history with each message so the model can respond in context.
+Choose **Agent settings** in the top bar (or open [http://127.0.0.1:8000/agent_settings](http://127.0.0.1:8000/agent_settings)). Settings now have a dedicated page with a link back to chat. These settings apply to this local installation and are shared by its chats.
 
-The backend keeps the prompt-file mapping on the server. The browser sends a mode name, not a file path. The four prompt files are:
+### Provider and model
 
-| Mode | Prompt file |
-| --- | --- |
-| Blog post | `writing_prompts/blog_post/Blog_Post_Writing_Coach_Prompt.txt` |
-| Facebook | `writing_prompts/facebook/Facebook_Writing_Coach_Prompt.txt` |
-| Instagram | `writing_prompts/instagram/Instagram_Writing_Coach_Prompt.txt` |
-| LinkedIn | `writing_prompts/linkedin/LinkedIn_Event_Reflection_Coach_Prompt.txt` |
+- Choose **Ollama (local)** or **OpenAI (cloud)**.
+- Enter the model identifier expected by that provider. For example, the default Ollama model is `gemma3:4b`.
+- For Ollama, enter a different API URL only if your server does not use the default `http://localhost:11434/v1`.
+- For OpenAI, enter a key in the password field or configure `OPENAI_API_KEY` before starting the backend. The UI never receives the key back from the server.
 
-## Where chat history is kept
+### Prompts
 
-The front end saves chats in the browser's `localStorage` on that device and browser. It does not use a server-side database. A saved chat can remain after closing and reopening the browser, but it is not automatically shared with another browser, profile, or computer. Clearing the browser's site data can remove the saved chats. When you send a message, the front end sends the conversation history to the local backend, which forwards it to the local Ollama service for that response.
+Select a writing mode to view its instructions. Each mode starts with the built-in prompt file from `writing_prompts/`. Turn on **Use a customized prompt** to edit it, then save settings. Customized prompt text is stored in `backend/local_data/agent_settings.json`; the original prompt files remain unchanged. Choose **Use the built-in prompt** to remove the override for that mode.
 
-## Troubleshooting
+### Built-in tools
 
-### `python` or `ollama` is not recognized
+Enable or disable the word/character counter and character-limit checker. The count tools are deterministic: they count Unicode code points, including spaces and line breaks when reporting total characters. A character-limit check uses the limit supplied by the user; the tool does not guess current platform limits.
 
-- Open a new terminal after installing the program and try again.
-- On Windows, try `py -3 --version` if `python --version` does not work.
-- If Ollama is installed but its command is not on PATH, launch the Ollama app and follow the installer's repair/reinstall steps from the [official Windows download page](https://ollama.com/download/windows). Avoid downloading runtime files from unofficial sites.
+### Harness skills
 
-### The browser says it cannot connect or `127.0.0.1` refused to connect
+Create a skill by entering a name, short description, and instruction text. The app saves it as a local `SKILL.md` package and selects it. Use **Edit** to change its name, description, or instructions. Check or uncheck a skill to include or exclude it from the agent's available Harness Skills on future requests. Delete removes that local skill and its selection.
 
-The FastAPI server is not running or the terminal running it has closed. Start it again using the command in [Start the writing coach](#5-start-the-writing-coach), then reload the page.
+Harness Skills load instruction text; this app does not execute scripts bundled with a skill. Treat skill instructions as trusted prompt content, since they can influence model behavior. Skills are written under `backend/local_data/skills/`.
 
-### The app says it cannot connect to Ollama
+## How a chat request works
 
-Launch Ollama and check that its command works. In a terminal, run `ollama list`. If the command responds but the model is not listed, download it with `ollama pull gemma3:4b` (or the model name configured in `OLLAMA_MODEL`). Check that the backend's `OLLAMA_BASE_URL` matches the Ollama service address.
+1. Choose **New chat** and select blog post, Facebook, Instagram, or LinkedIn.
+2. The backend selects either the saved prompt override or that mode's built-in prompt.
+3. The backend constructs a Pydantic AI agent using the saved provider/model, enabled tools, and selected Harness Skills.
+4. The browser sends conversation history to `POST /api/chat`; the backend returns the model reply to the chat UI.
 
-### The app stays on "Thinking" or the first response is slow
+The prompt files are mapped on the backend in `backend/prompts.py`. The browser sends a validated mode identifier, never a prompt file path.
 
-The first request may take longer while Ollama loads the model into memory. The backend allows up to 180 seconds for a model response. Check that the computer has enough available memory and that Ollama is still running. If the model repeatedly takes longer than the timeout, try a smaller Ollama model and set `OLLAMA_MODEL` to its name.
+## Local data and privacy
 
-### A prompt cannot be loaded
-
-Check that the repository was cloned with the `writing_prompts/` folder and that the relevant file in the table above exists with the same spelling. The backend mapping in `backend/prompts.py` must match the selected mode and file location.
+- Provider, model, enabled tools, enabled skills, and prompt overrides are stored in `backend/local_data/agent_settings.json`.
+- User-authored skills are stored in `backend/local_data/skills/`.
+- `backend/local_data/` is ignored by Git and is not included when you push the project. Back it up manually if you want to keep local settings and skills.
+- Chat history remains in the browser's `localStorage`, not in a backend database. It is specific to that browser profile and computer.
+- An API key entered in the settings screen is held in backend process memory only. It is not saved to the settings file. An environment-provided key remains available for the process started with that environment.
+- Ollama generation runs on the local machine. OpenAI generation sends the relevant prompt and chat history to OpenAI and may be billable.
 
 ## Project layout
 
 ```text
 repository-root/
 |-- backend/
-|   |-- main.py          # FastAPI app, Ollama call, and static front-end hosting
-|   |-- prompts.py       # Allowlisted mapping from mode to prompt file
-|   `-- schemas.py       # Pydantic request/response validation
+|   |-- main.py             # FastAPI routes and static UI hosting
+|   |-- agent_runtime.py    # Pydantic AI provider/model and Harness setup
+|   |-- prompts.py          # Mode-to-built-in-prompt mapping
+|   |-- schemas.py          # Chat request and response validation
+|   |-- settings_store.py   # Local config and custom skill storage
+|   `-- requirements.txt
 |-- front-end/
 |   |-- index.html
+|   |-- agent_settings.html
+|   |-- agent_settings.js
 |   |-- styles.css
 |   `-- script.js
 |-- writing_prompts/
@@ -258,21 +225,28 @@ repository-root/
 `-- README.md
 ```
 
-The Python virtual environment is created locally at `backend/.venv/`; it is not needed in the clone itself and should not be copied between computers.
+## Troubleshooting
 
-## How the local pieces connect
+### Python or Ollama is not recognized
 
-```text
-Browser (HTML/CSS/JavaScript)
-        |  POST /api/chat: mode + conversation messages
-        v
-FastAPI backend (Python)
-        |  loads the selected server-side prompt and calls Ollama
-        v
-Ollama local service (default model: gemma3:4b)
-        |  returns a reply
-        v
-FastAPI backend -> browser chat
-```
+Open a new terminal after installation. On Windows, try `py -3 --version` if `python --version` does not work. If Ollama is installed but unavailable in PowerShell, use the installer's repair/reinstall instructions from the [official Ollama Windows page](https://ollama.com/download/windows).
 
-The app serves the front end and API from the same local server, so the browser can call `/api/chat` without separate cross-origin configuration. The default setup does not use an OpenAI API key or send requests to the OpenAI API. Ollama needs internet access to download the application and model; after download, this app sends generation requests to the Ollama service on your own computer.
+### The browser says the connection was refused
+
+The FastAPI backend is not running or its terminal has closed. Start it again and keep its terminal open.
+
+### The backend cannot connect to Ollama
+
+Launch Ollama and run `ollama list`. Confirm the model selected in Agent settings is installed and the URL ends in `/v1`, such as `http://localhost:11434/v1`.
+
+### OpenAI reports that a key is missing or the request failed
+
+Confirm the OpenAI provider is selected, a model name is entered, and either a key was entered in settings for the current backend run or `OPENAI_API_KEY` was set before Uvicorn started. Check the backend terminal for provider diagnostics. API usage may be charged by OpenAI.
+
+### The response is slow
+
+The first local request may take longer while Ollama loads a model. This backend allows up to 180 seconds for a response. Check that the model fits available memory. A smaller Ollama model may respond faster.
+
+### A built-in prompt cannot be loaded
+
+Check that the `writing_prompts/` folder and the corresponding prompt file exist. Confirm the mapping in `backend/prompts.py` matches the mode and filename.

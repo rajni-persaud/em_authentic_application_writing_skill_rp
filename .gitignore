@@ -1,3 +1,7 @@
 # Python bytecode and cache directories are generated locally.
 __pycache__/
 *.py[cod]
+
+# Local-only provider settings, prompt overrides, skills, and secrets.
+backend/local_data/
+.env

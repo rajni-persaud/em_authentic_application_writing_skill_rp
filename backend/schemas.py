@@ -42,7 +42,7 @@ class ChatRequest(BaseModel):
     """The data the browser sends to start or continue a conversation.
 
     An empty ``messages`` list means the user has just chosen a writing mode
-    and the backend should ask Ollama to produce the prompt-guided opening.
+    and the backend should ask the configured agent for its prompt-guided opening.
     A non-empty list means the user has sent a turn and the full conversation
     history is included for context.
     """
@@ -57,7 +57,7 @@ class ChatRequest(BaseModel):
     # another client can omit it; main.py creates one for the response then.
     chat_id: str | None = Field(default=None, min_length=1, max_length=128)
 
-    # The browser sends prior user/assistant turns so Ollama has context. An
+    # The browser sends prior user/assistant turns so the agent has context. An
     # empty list is allowed for the initial prompt-only opening call. These
     # bounds cap the history length and each message's size.
     messages: list[ChatMessage] = Field(default_factory=list, max_length=50)

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f7f5" />
+    <title>Agent settings - Writing Coach</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="agent_settings.js" defer></script>
+  </head>
+  <body>
+    <main class="settings-page-shell">
+      <nav class="settings-page-top" aria-label="Settings navigation">
+        <a class="settings-back-link" href="/">&larr; Back to chat</a>
+        <span class="settings-local-label"><span class="status-dot"></span> This computer only</span>
+      </nav>
+
+      <section class="settings-dialog settings-page-card" aria-labelledby="settingsTitle">
+        <header class="settings-header">
+          <div>
+            <p class="eyebrow">Writing Coach</p>
+            <h1 id="settingsTitle">Agent settings</h1>
+          </div>
+        </header>
+        <p class="settings-intro">Choose which model powers the coach, adjust its instructions, and enable capabilities. These settings are shared by chats in this local app.</p>
+
+        <form id="settingsForm">
+          <section class="settings-section" aria-labelledby="providerHeading">
+            <h2 id="providerHeading">Model provider</h2>
+            <div class="settings-grid">
+              <label class="settings-field">Provider
+                <select id="providerSelect" name="provider">
+                  <option value="ollama">Ollama (local)</option>
+                  <option value="openai">OpenAI (cloud)</option>
+                </select>
+              </label>
+              <label class="settings-field">Model name
+                <input id="modelName" name="model" type="text" maxlength="160" required />
+              </label>
+            </div>
+            <label class="settings-field" id="ollamaUrlField">Ollama API URL
+              <input id="ollamaBaseUrl" name="ollama_base_url" type="url" maxlength="500" />
+            </label>
+            <div id="openaiKeyFields" hidden>
+              <label class="settings-field">OpenAI API key
+                <input id="openaiApiKey" name="openai_api_key" type="password" autocomplete="new-password" placeholder="Paste a key to use it for this run of the app" />
+              </label>
+              <p class="settings-help" id="openaiKeyStatus">The key is held in backend memory until the backend stops. It is not written to the settings file.</p>
+              <label class="settings-check"><input id="forgetOpenaiKey" type="checkbox" /> Forget the key currently held in memory</label>
+              <p class="settings-help">OpenAI requires an API key and may charge for usage. To use it across restarts, set <code>OPENAI_API_KEY</code> before starting the backend.</p>
+            </div>
+            <p class="settings-help">Model names are entered as provided by the selected service. For Ollama, download the model first with <code>ollama pull model-name</code>.</p>
+          </section>
+
+          <section class="settings-section" aria-labelledby="promptHeading">
+            <h2 id="promptHeading">Writing prompts</h2>
+            <label class="settings-field">Writing mode
+              <select id="promptMode">
+                <option value="blog_post">Blog post</option>
+                <option value="facebook">Facebook</option>
+                <option value="instagram">Instagram</option>
+                <option value="linkedin">LinkedIn</option>
+              </select>
+            </label>
+            <label class="settings-check"><input id="useCustomPrompt" type="checkbox" /> Use a customized prompt for this mode</label>
+            <textarea class="prompt-editor" id="promptEditor" rows="12" spellcheck="false" aria-label="Writing prompt"></textarea>
+            <button class="secondary-button" id="restorePrompt" type="button">Use the built-in prompt</button>
+            <p class="settings-help">Built-in prompt files stay unchanged. Customized versions are saved in this computer's local app settings.</p>
+          </section>
+
+          <section class="settings-section" aria-labelledby="toolsHeading">
+            <h2 id="toolsHeading">Built-in tools</h2>
+            <p class="settings-help">These tools return exact word and character counts. They do not edit or publish your writing.</p>
+            <div class="settings-options" id="toolOptions"></div>
+          </section>
+
+          <section class="settings-section" aria-labelledby="skillsHeading">
+            <h2 id="skillsHeading">Harness skills</h2>
+            <p class="settings-help">Skills are instruction-only SKILL.md files. Select which ones the agent may load. Do not include secrets or instructions you do not trust.</p>
+            <div class="settings-options" id="skillOptions"></div>
+            <details class="skill-create">
+              <summary>Create a local skill</summary>
+              <div class="skill-create-fields">
+                <label class="settings-field">Skill name
+                  <input id="newSkillName" type="text" maxlength="80" placeholder="e.g. Plain language" />
+                </label>
+                <label class="settings-field">Short description
+                  <input id="newSkillDescription" type="text" maxlength="240" placeholder="When should the coach use this skill?" />
+                </label>
+                <label class="settings-field">Instructions
+                  <textarea id="newSkillInstructions" rows="5" maxlength="20000" placeholder="Write the guidance the agent should follow."></textarea>
+                </label>
+                <div class="skill-form-actions">
+                  <button class="secondary-button" id="saveSkillButton" type="button">Save skill</button>
+                  <button class="secondary-button" id="cancelSkillEdit" type="button" hidden>Cancel edit</button>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <div class="settings-actions">
+            <span class="settings-save-status" id="settingsSaveStatus" role="status"></span>
+            <button class="primary-button" type="submit">Save settings</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

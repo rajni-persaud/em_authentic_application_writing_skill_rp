@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pydantic>=2.7
+httpx
+pydantic-ai-slim[openai]
+pydantic-ai-harness[skills]

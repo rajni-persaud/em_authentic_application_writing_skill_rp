@@ -58,5 +58,5 @@ def load_system_prompt(mode: WritingMode) -> str:
         # as if no coaching instructions had been loaded, so fail explicitly.
         raise RuntimeError(f"The prompt file for {mode.value} is empty.")
 
-    # The caller (main.py) will place this text in Ollama's system message.
+    # The caller (agent_runtime.py) will use this text as agent instructions.
     return prompt
