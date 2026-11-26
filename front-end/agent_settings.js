@@ -17,6 +17,8 @@ const settingsSaveStatus = document.querySelector('#settingsSaveStatus');
 let settingsData = null;
 let settingsDraft = null;
 
+const PROMPT_MODE_STORAGE_KEY = 'writingCoachSelectedPromptMode';
+
 function showStatus(message, isError = false) {
   settingsSaveStatus.textContent = message;
   settingsSaveStatus.classList.toggle('error', isError);
@@ -88,17 +90,44 @@ async function loadSettings() {
   try {
     settingsData = await requestJson('/api/settings');
     settingsDraft = structuredClone(settingsData.settings);
+
     providerSelect.value = settingsDraft.provider;
     modelNameInput.value = settingsDraft.model;
     ollamaBaseUrlInput.value = settingsDraft.ollama_base_url;
+
+    // Restore the last selected writing mode.
+    const savedMode = localStorage.getItem(PROMPT_MODE_STORAGE_KEY);
+    const availableModes = Array.from(promptModeSelect.options)
+      .map(option => option.value);
+
+    if (savedMode && availableModes.includes(savedMode)) {
+      promptModeSelect.value = savedMode;
+    } else {
+      // If no mode was previously selected, open a mode
+      // that already has a custom prompt, if one exists.
+      const customModes = Object.keys(settingsDraft.prompt_overrides || {});
+      const firstCustomMode = customModes.find(mode =>
+        availableModes.includes(mode)
+      );
+
+      if (firstCustomMode) {
+        promptModeSelect.value = firstCustomMode;
+      }
+    }
+
     openaiKeyStatus.textContent = settingsData.openai_api_key_configured
       ? 'An API key is available to this backend process. Enter a new key to replace it.'
       : 'No key is configured. Enter one here for this run, or set OPENAI_API_KEY before starting the backend.';
+
     updateProviderFields();
     showPromptEditor();
     showStatus('');
+
   } catch (error) {
-    showStatus(`${error.message || 'Could not load settings.'} Check that the backend is running.`, true);
+    showStatus(
+      `${error.message || 'Could not load settings.'} Check that the backend is running.`,
+      true
+    );
   }
 }
 
@@ -112,6 +141,12 @@ providerSelect.addEventListener('change', () => {
 });
 promptModeSelect.addEventListener('change', () => {
   stashPromptEditor();
+
+  localStorage.setItem(
+    PROMPT_MODE_STORAGE_KEY,
+    promptModeSelect.value
+  );
+
   showPromptEditor();
 });
 useCustomPromptInput.addEventListener('change', () => {
