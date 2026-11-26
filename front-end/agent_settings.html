@@ -19,7 +19,7 @@
       </nav>
 
       <!-- One semantic form groups the settings that are persisted together.
-           The JavaScript fills dynamic tool and skill sections from the API. -->
+           The JavaScript loads provider, model, and prompt settings from the API. -->
       <section class="settings-dialog settings-page-card" aria-labelledby="settingsTitle">
         <header class="settings-header">
           <div>
@@ -27,7 +27,7 @@
             <h1 id="settingsTitle">Agent settings</h1>
           </div>
         </header>
-        <p class="settings-intro">Choose which model powers the coach, adjust its instructions, and enable capabilities. These settings are shared by chats in this local app.</p>
+        <p class="settings-intro">Choose which model powers the coach and customize its writing instructions. These settings are shared by chats in this local app.</p>
 
         <form id="settingsForm">
           <!-- Provider settings select the model connection used by future turns. -->
@@ -74,41 +74,6 @@
             <textarea class="prompt-editor" id="promptEditor" rows="12" spellcheck="false" aria-label="Writing prompt"></textarea>
             <button class="secondary-button" id="restorePrompt" type="button">Use the built-in prompt</button>
             <p class="settings-help">Built-in prompt files stay unchanged. Customized versions are saved in this computer's local app settings.</p>
-          </section>
-
-          <!-- Deterministic built-in tools are selectable capabilities, not
-               generated code; availability can depend on model tool support. -->
-          <section class="settings-section" aria-labelledby="toolsHeading">
-            <h2 id="toolsHeading">Built-in tools</h2>
-            <p class="settings-help">These tools return exact word and character counts. They do not edit or publish your writing.</p>
-            <div class="settings-options" id="toolOptions"></div>
-          </section>
-
-          <!-- Skills are locally authored instruction bundles. The details
-               element keeps the creation/edit form available without crowding
-               the list when the user is only reviewing current skills. -->
-          <section class="settings-section" aria-labelledby="skillsHeading">
-            <h2 id="skillsHeading">Harness skills</h2>
-            <p class="settings-help">Skills are instruction-only SKILL.md files. Select which ones the agent may load. Do not include secrets or instructions you do not trust.</p>
-            <div class="settings-options" id="skillOptions"></div>
-            <details class="skill-create">
-              <summary>Create a local skill</summary>
-              <div class="skill-create-fields">
-                <label class="settings-field">Skill name
-                  <input id="newSkillName" type="text" maxlength="80" placeholder="e.g. Plain language" />
-                </label>
-                <label class="settings-field">Short description
-                  <input id="newSkillDescription" type="text" maxlength="240" placeholder="When should the coach use this skill?" />
-                </label>
-                <label class="settings-field">Instructions
-                  <textarea id="newSkillInstructions" rows="5" maxlength="20000" placeholder="Write the guidance the agent should follow."></textarea>
-                </label>
-                <div class="skill-form-actions">
-                  <button class="secondary-button" id="saveSkillButton" type="button">Save skill</button>
-                  <button class="secondary-button" id="cancelSkillEdit" type="button" hidden>Cancel edit</button>
-                </div>
-              </div>
-            </details>
           </section>
 
           <!-- Save feedback and the submit action stay together at the end of

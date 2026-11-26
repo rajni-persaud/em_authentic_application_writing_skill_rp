@@ -18,18 +18,11 @@ from backend.agent_runtime import generate_reply
 from backend.prompts import load_system_prompt
 from backend.schemas import ChatRequest, ChatResponse, WritingMode
 from backend.settings_store import (
-    AVAILABLE_TOOLS,
     LocalSettings,
     SettingsUpdate,
-    SkillDefinition,
-    create_skill,
-    delete_skill,
     get_openai_api_key,
-    list_skills,
     load_settings,
-    model_supports_agent_tools,
     save_settings,
-    update_skill,
     update_session_key,
 )
 
@@ -39,7 +32,7 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "front-end"
 
 app = FastAPI(
     title="Local Writing Coach",
-    description="A configurable local writing coach using Pydantic AI and Ollama or OpenAI.",
+    description="A local writing coach using Pydantic AI with Ollama or OpenAI.",
     version="0.2.0",
 )
 
@@ -60,52 +53,21 @@ async def agent_settings_page() -> FileResponse:
 
 @app.get("/api/settings")
 async def get_settings() -> dict[str, object]:
-    """Return the local configuration, built-in prompts, tools, and skills.
-
-    The API key is never returned. The browser receives only whether a key is
-    available, so an entered key cannot be read back from the settings screen.
-    """
+    """Return provider/model settings and the built-in writing prompts."""
 
     settings = load_settings()
-    defaults = {
-        mode.value: load_system_prompt(mode)
-        for mode in WritingMode
-    }
+    defaults = {mode.value: load_system_prompt(mode) for mode in WritingMode}
     return {
         "settings": settings.model_dump(mode="json"),
         "default_prompts": defaults,
-        "available_tools": [
-            {"id": tool_id, **details, "enabled": tool_id in settings.enabled_tools}
-            for tool_id, details in AVAILABLE_TOOLS.items()
-        ],
-        "tool_support": {
-            "supported": model_supports_agent_tools(settings.provider, settings.model),
-            "notice": (
-                "Ollama's Gemma 3 models reject tool calls. Counting tools and Harness skills are paused "
-                "for this model; switch to a tool-capable model to use them. Your selections are kept."
-                if not model_supports_agent_tools(settings.provider, settings.model)
-                else "The selected provider/model is configured to receive enabled tools and skills."
-            ),
-        },
-        "skills": list_skills(),
         "openai_api_key_configured": bool(get_openai_api_key()),
     }
 
 
 @app.put("/api/settings")
 async def update_settings(request: SettingsUpdate) -> dict[str, object]:
-    """Validate and save provider, model, prompt, tool, and skill selections."""
+    """Validate and save provider, model, and prompt selections."""
 
-    available_skill_ids = {skill["id"] for skill in list_skills()}
-    missing_skills = set(request.enabled_skills) - available_skill_ids
-    if missing_skills:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Unknown skill selection: {', '.join(sorted(missing_skills))}",
-        )
-
-    # Strip transient credentials from the persisted model. API keys remain in
-    # process memory only; an environment variable can also supply the key.
     persistent_data = request.model_dump(
         exclude={"openai_api_key", "forget_openai_api_key"},
     )
@@ -115,54 +77,8 @@ async def update_settings(request: SettingsUpdate) -> dict[str, object]:
     return {
         "settings": settings.model_dump(mode="json"),
         "openai_api_key_configured": bool(get_openai_api_key()),
-        "tool_support": {
-            "supported": model_supports_agent_tools(settings.provider, settings.model),
-            "notice": (
-                "Ollama's Gemma 3 models reject tool calls. Counting tools and Harness skills are paused "
-                "for this model; switch to a tool-capable model to use them. Your selections are kept."
-                if not model_supports_agent_tools(settings.provider, settings.model)
-                else "The selected provider/model is configured to receive enabled tools and skills."
-            ),
-        },
         "message": "Settings saved on this computer.",
     }
-
-
-@app.post("/api/skills", status_code=201)
-async def add_skill(request: SkillDefinition) -> dict[str, str]:
-    """Save a local SKILL.md instruction package for the Harness Skills API."""
-
-    try:
-        return create_skill(request)
-    except FileExistsError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-@app.put("/api/skills/{skill_id}")
-async def edit_skill(skill_id: str, request: SkillDefinition) -> dict[str, str]:
-    """Update instructions for a selected local Harness skill."""
-
-    try:
-        return update_skill(skill_id, request)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-
-@app.delete("/api/skills/{skill_id}")
-async def remove_skill(skill_id: str) -> dict[str, str]:
-    """Delete a locally authored skill and remove it from enabled settings."""
-
-    try:
-        delete_skill(skill_id)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    return {"message": "Skill deleted."}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -200,14 +116,6 @@ async def create_chat_turn(request: ChatRequest) -> ChatResponse:
             detail=f"Cannot connect to {provider_hint}. Check the provider settings and try again.",
         ) from exc
     except Exception as exc:
-        if "does not support tools" in str(exc).casefold():
-            raise HTTPException(
-                status_code=422,
-                detail=(
-                    "The selected model rejected tool calls. Disable its tools and Harness skills, "
-                    "or choose a model that supports tool use."
-                ),
-            ) from exc
         # Avoid returning provider internals (which can include request data or
         # credential details) to the browser. Keep diagnostics in the local log.
         logger.exception("Pydantic AI request failed for provider %s", settings.provider)
