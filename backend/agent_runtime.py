@@ -96,8 +96,7 @@ def _build_agent(settings: LocalSettings, system_prompt: str) -> "Agent":
     # These functions are deliberately deterministic and side-effect free.
     # Users can enable them in Settings; the model can call them when a writing
     # task needs exact counts instead of estimating from prose.
-    if "word_character_count" in settings.enabled_tools:
-
+    if tools_supported and "word_character_count" in settings.enabled_tools:
         @agent.tool_plain
         def word_character_count(text: str) -> str:
             """Count words and characters in supplied draft text.
@@ -115,7 +114,7 @@ def _build_agent(settings: LocalSettings, system_prompt: str) -> "Agent":
                 f"{characters_without_whitespace}."
             )
 
-    if "character_limit_check" in settings.enabled_tools:
+    if tools_supported and "character_limit_check" in settings.enabled_tools:
 
         @agent.tool_plain
         def character_limit_check(text: str, limit: int) -> str:
