@@ -16,7 +16,6 @@ const promptEditor = document.querySelector('#promptEditor');
 const toolOptions = document.querySelector('#toolOptions');
 const skillOptions = document.querySelector('#skillOptions');
 const settingsSaveStatus = document.querySelector('#settingsSaveStatus');
-const capabilityWarning = document.querySelector('#capabilityWarning');
 const saveSkillButton = document.querySelector('#saveSkillButton');
 const cancelSkillEditButton = document.querySelector('#cancelSkillEdit');
 
@@ -247,8 +246,6 @@ async function saveSettings(event) {
     settingsData.settings = result.settings;
     settingsData.openai_api_key_configured = result.openai_api_key_configured;
     settingsData.tool_support = result.tool_support;
-    capabilityWarning.hidden = result.tool_support.supported;
-    capabilityWarning.textContent = result.tool_support.notice;
     renderTools();
     renderSkills();
     openaiApiKeyInput.value = '';
@@ -278,8 +275,6 @@ async function loadSettings() {
     showPromptEditor();
     renderTools();
     renderSkills();
-    capabilityWarning.hidden = settingsData.tool_support.supported;
-    capabilityWarning.textContent = settingsData.tool_support.notice;
     showStatus('');
   } catch (error) {
     showStatus(`${error.message || 'Could not load settings.'} Check that the backend is running.`, true);
